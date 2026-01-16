@@ -89,12 +89,18 @@ class OrderHandler
     public function printPreAccount(object $data): array
     {
         $printer = $data->printer;
+        $saleChannelId = $data->sale_channel_id;
 
         try {
             $connector = new Connector($printer);
             $this->getHeader($connector);
-            $this->text->new('PRE-CUENTA');
-            $this->text->new('N° ' . $data->order_number);
+            if ($saleChannelId === '03') {
+                $this->text->new('TICKET DE ENVÍO');
+                $this->text->new('N° ' . $data->delivery->number);
+            } else {
+                $this->text->new('PRE-CUENTA');
+                $this->text->new('N° ' . $data->order_number);
+            }
 
             $this->printer->feed();
 
@@ -176,6 +182,7 @@ class OrderHandler
      */
     public function printGeneralData(object $data): void
     {
+        $saleChannelId = $data->sale_channel_id;
         $this->printer->setTextSize(1, 1);
         $this->text->new($this->separator, false);
         $this->printer->feed();
@@ -185,6 +192,30 @@ class OrderHandler
 
         if (isset($data->user_name)) {
             $this->text->new("MOZO: " . $data->user_name);
+        }
+
+        if ($saleChannelId === '03' && !is_null($data->delivery)) {
+            $delivery = $data->delivery;
+            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
+            $this->text->new("DATOS DE ENVÍO");
+            $this->printer->setJustification();
+            if (isset($delivery->recipient_name)) {
+                $this->text->new("CLIENTE: " . $delivery->recipient_name);
+            }
+            if (isset($delivery->recipient_phone)) {
+                $this->text->new("TELÉFONO: " . $data->delivery->recipient_phone);
+            }
+            $this->text->new("DIRECCIÓN: " . $data->delivery->recipient_address);
+
+            if (isset($delivery->payment_method)) {
+                foreach ($delivery->payment_method as $payMethod) {
+                    $this->text->new("M. PAGO: " . $payMethod->name);
+                }
+            }
+
+            if (isset($delivery->note)) {
+                $this->text->new("NOTAS: " . $data->delivery->note);
+            }
         }
     }
 }
