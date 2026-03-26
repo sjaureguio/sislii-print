@@ -32,11 +32,10 @@ class PrintInvoiceItems
         for ($i = 0, $n = count($this->items); $i < $n; $i++) {
             $item = $this->items[$i];
 
-            $itemDesc = $item->item->name;
-            $quantity = str_pad((string)$item->quantity, 5);
+            $quantity = str_pad((string)$item->quantity, 6);
 
-            $itemName = substr($itemDesc, 0, 28);
-            $product = str_pad($itemName, 28);
+            $product = mb_substr($item->item->name, 0, 28);
+            $product = $product . str_repeat(' ', 28 - mb_strlen($product));
 
             $unitPrice = str_pad($item->unit_price, 6, ' ', STR_PAD_LEFT);
 

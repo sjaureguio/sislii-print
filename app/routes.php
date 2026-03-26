@@ -10,11 +10,13 @@ use App\Infrastructure\Handler\Printing\ExpenseHandler;
 use App\Infrastructure\Handler\Printing\InvoiceHandler;
 use App\Infrastructure\Handler\Printing\PrintSaleReceiptHandler;
 use App\Infrastructure\Handler\Printing\SaleNoteHandler;
+use App\Infrastructure\Handler\Printing\PrintHandler;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 use Slim\Interfaces\RouteCollectorProxyInterface as Group;
-use App\Infrastructure\Handler\Printing\PrintHandler;
+
+require_once __DIR__ . '/helpers.php';
 
 return function (App $app) {
     $app->options('/{routes:.*}', function (Request $request, Response $response) {
@@ -36,89 +38,62 @@ return function (App $app) {
         return $response;
     });
 
-    $app->post('/print/order', function (Request $request, Response $response) {
-        $data = json_decode(
-            json_encode($request->getParsedBody())
-        );
+    $app->group('/print', function (Group $group) {
+        $group->get('/orders', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new OrderHandler();
+            foreach ($data->areas as $area) {
+                $data->area = $area;
+                $prt->printCommand($data);
+            }
+            return closeTab($response);
+        });
 
-        $prt = new OrderHandler();
-        $payload = $prt->printCommand($data);
 
-        $response->getBody()->write(json_encode($payload));
-        return $response;
-    });
+        $group->get('/pre-accounts', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new OrderHandler();
+            $prt->printPreAccount($data);
+            return closeTab($response);
+        });
 
-    $app->post('/print/pre-account', function (Request $request, Response $response) {
-        $data = json_decode(
-            json_encode($request->getParsedBody())
-        );
+        $group->get('/invoices', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new InvoiceHandler();
+            $prt->printInvoice($data);
+            return closeTab($response);
+        });
 
-        $prt = new OrderHandler();
-        $payload = $prt->printPreAccount($data);
-        $response->getBody()->write(json_encode($payload));
+        $group->post('/receipt', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new PrintSaleReceiptHandler();
+            return jsonResponse($response, $prt->printRceipt($data));
+        });
 
-        return $response;
-    });
+        $group->post('/sale-note', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new SaleNoteHandler();
+            return jsonResponse($response, $prt->printSaleNote($data));
+        });
 
-    $app->post('/print/bill', function (Request $request, Response $response) {
-        $data = json_decode(
-            json_encode($request->getParsedBody())
-        );
+        $group->get('/final-balance', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new CashHandler();
+            $prt->printFinalBalance($data);
+            return closeTab($response);
+        });
 
-        $prt = new InvoiceHandler();
-        $payload = $prt->printInvoice($data);
-        $response->getBody()->write(json_encode($payload));
-        $response->withHeader('Content-Type', 'application/json')
-            ->withStatus(200);
+        $group->post('/cancell-order', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new PrintHandler();
+            return jsonResponse($response, $prt->printCancelOrder($data));
+        });
 
-        return $response;
-    });
-
-    $app->post('/print/receipt', function (Request $request, Response $response) {
-
-        $prt = new PrintSaleReceiptHandler();
-        $payload = $prt->printRceipt(json_decode(file_get_contents('php://input'), false));
-        $response->getBody()->write(json_encode($payload));
-        $response->withHeader('Content-Type', 'application/json')
-            ->withStatus(200);
-
-        return $response;
-    });
-
-    $app->post('/print/sale-note', function (Request $request, Response $response) {
-
-        $prt = new SaleNoteHandler();
-        $payload = $prt->printSaleNote(json_decode(file_get_contents('php://input'), false));
-        $response->getBody()->write(json_encode($payload));
-
-        return $response;
-    });
-
-    $app->post('/print/final-balance', function (Request $request, Response $response) {
-
-        $prt = new CashHandler();
-        $payload = $prt->printFinalBalance(json_decode(file_get_contents('php://input'), false));
-        $response->getBody()->write(json_encode($payload));
-
-        return $response;
-    });
-
-    $app->post('/print/cancell-order', function (Request $request, Response $response) {
-
-        $prt = new PrintHandler();
-        $payload = $prt->printCancelOrder(json_decode(file_get_contents('php://input'), false));
-        $response->getBody()->write(json_encode($payload));
-
-        return $response;
-    });
-
-    $app->post('/print/expense', function (Request $request, Response $response) {
-
-        $prt = new ExpenseHandler();
-        $payload = $prt->printExpense(json_decode(file_get_contents('php://input'), false));
-        $response->getBody()->write(json_encode($payload));
-
-        return $response;
+        $group->post('/expense', function (Request $request, Response $response) {
+            $data = validateAndDecode($request);
+            $prt = new ExpenseHandler();
+            return jsonResponse($response, $prt->printExpense($data));
+        });
     });
 
     $app->group('/users', function (Group $group) {

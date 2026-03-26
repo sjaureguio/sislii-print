@@ -60,7 +60,9 @@ class PrintSaleReceiptHandler
                 'message' => 'Ticket de venta impreso con éxito'
             ];
         } catch (Throwable $th) {
-            $this->printer->close();
+            if (isset($this->printer)) {
+                $this->printer->close();
+            }
             return [
                 'success' => false,
                 'message' => $th->getMessage()

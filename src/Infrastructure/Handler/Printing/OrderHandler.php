@@ -43,35 +43,46 @@ class OrderHandler
             if (isset($data->note)) {
                 $this->text->new("NOTA: " . $data->note);
             }
-
             $this->text->new($this->separator, false);
             $this->printer->setDoubleStrike();
             $this->text->new("CANT. PRODUCTO                                  ");
             $this->printer->setDoubleStrike(false);
             $this->text->new($this->separator, false);
 
-            foreach ($prodArea->items as $item) {
-                $itemName = substr($item->name, 0, 42);
-                $quantity = str_pad((string) $item->quantity, 6);
-                $printName = str_pad($itemName, 42);
+            $this->printer->setTextSize(2, 1);
+            $this->printer -> setFont(Printer::FONT_B);
 
-                $this->text->new($quantity . $printName);
-                $text = 'NOTAS: ';
+            foreach ($prodArea->items as $item) {
+                $product = mb_substr($item->name, 0, 29);
+                $product = $product . str_repeat(' ', 29 - mb_strlen($product));
+
+                $quantity = str_pad((string) $item->quantity, 3);
+
+                $this->text->new($quantity . $product, false);
+                $text = '';
                 if (isset($item->notes)) {
                     $text .= $item->notes;
                 }
-                if ($item->to_take_away) {
-                    $text .= ' - PARA LLEVAR';
+                if ($item->to_take_away && $data->sale_channel_id === '02') {
+                    $text .= ' PARA LLEVAR';
                 }
-                if ($text !== 'NOTAS: ') {
+                if ($text !== '') {
                     $this->text->new($text);
                 }
+                $this->printer->setTextSize(1, 1);
+                $this->printer->setFont();
+                $this->text->new($this->separator);
+                $this->printer->setFont(Printer::FONT_B);
+                $this->printer->setTextSize(2, 1);
             }
-
+            $this->printer->setTextSize(1, 1);
+            $this->printer -> setFont();
             $this->text->new($this->separator, false);
-
             $this->printer->feed();
             $this->printer->cut();
+
+            $this->printer->getPrintConnector()->write(PRINTER::ESC . "B" . chr(4) . chr(2));
+
             $this->printer->close();
 
             return [
@@ -117,15 +128,18 @@ class OrderHandler
             $this->text->new($this->separator, false);
 
             foreach ($data->items as $item) {
-                $itemName = substr($item->name, 0, 28);
+                $product = mb_substr($item->name, 0, 28);
+                $product = $product . str_repeat(' ', 28 - mb_strlen($product));
 
                 $quantity = str_pad((string)$item->quantity, 6);
-                $itemPrint = str_pad($itemName, 28);
                 $unitPrice = str_pad(number_format($item->unit_price, 2), 6, ' ', STR_PAD_LEFT);
                 $totalFmt = number_format($item->total, 2);
                 $total = str_pad($totalFmt, 8, ' ', STR_PAD_LEFT);
 
-                $this->text->new($quantity . $itemPrint . $unitPrice . $total);
+                $this->text->new($quantity . $product . $unitPrice . $total);
+                if (isset($item->notes)) {
+                    $this->text->new($item->notes);
+                }
                 if ($item->discount && $item->discount->amount > 0) {
                     $this->text->new("      Descto: " . number_format($item->discount->amount, 2));
                 }
@@ -194,7 +208,7 @@ class OrderHandler
             $this->text->new("MOZO: " . $data->user_name);
         }
 
-        if ($saleChannelId === '03' && !is_null($data->delivery)) {
+        if ($saleChannelId === '03' && isset($data->delivery)) {
             $delivery = $data->delivery;
             $this->printer->setJustification(Printer::JUSTIFY_CENTER);
             $this->text->new("DATOS DE ENVÍO");

@@ -45,7 +45,7 @@ class SaleNoteHandler
                 $establishment,
                 $document,
                 $customer,
-                $data->from_web,
+                true,
                 $config->print_of_format
             );
             $printHeader();
@@ -109,10 +109,10 @@ class SaleNoteHandler
 
         $this->printer->text($format === 'ticket_58' ? Printing::SEPARATOR42 : Printing::SEPARATOR);
         if (in_array($document->payment_condition_type_id, ['2', '3'])) {
-            $printCredit = new PrintCredit($this->printer, $document, $format);
+            $printCredit = new PrintCredit($this->printer, $document);
             $printCredit->printCreditInfo();
         } else {
-            $printPayments = new Payment($this->printer, $document, $format);
+            $printPayments = new Payment($this->printer, $document);
             $printPayments->printPayments();
         }
 

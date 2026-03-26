@@ -37,6 +37,7 @@ $container = $containerBuilder->build();
 // Instantiate the app
 AppFactory::setContainer($container);
 $app = AppFactory::create();
+$app->setBasePath('/sislii-print');
 $callableResolver = $app->getCallableResolver();
 
 // Register middleware

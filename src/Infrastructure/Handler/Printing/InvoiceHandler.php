@@ -49,7 +49,7 @@ class InvoiceHandler
                 $establishment,
                 $document,
                 $customer,
-                $data->from_web,
+                true,
             );
             $printHeader();
 
@@ -87,7 +87,9 @@ class InvoiceHandler
                 'message' => 'Comprobante de pago impreso con éxito'
             ];
         } catch (Throwable $th) {
-            $this->printer->close();
+            if (isset($this->printer)) {
+                $this->printer->close();
+            }
             return [
                 'success' => false,
                 'message' => $th->getMessage()
