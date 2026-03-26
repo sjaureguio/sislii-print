@@ -3,7 +3,7 @@
 namespace App\Infrastructure\Handler\Printing\Shared;
 
 use Exception;
-//use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\Printer;
 
@@ -22,12 +22,12 @@ class Connector
      */
     public function getPrinter(): Printer
     {
-//        if ($this->printer->connection_type === 'ethernet') {
-//            $connector = new NetworkPrintConnector($this->printer->ip_address, 9100);
-//        } else {
-//            $connector = new WindowsPrintConnector($this->printer->name);
-//        }
-        $connector = new WindowsPrintConnector("CAJA");
+        if ($this->printer->connection_type === 'ethernet') {
+            $connector = new NetworkPrintConnector($this->printer->ip_address, 9100);
+        } else {
+            $connector = new WindowsPrintConnector($this->printer->name);
+        }
+        // $connector = new WindowsPrintConnector("CAJA");
 
         return new Printer($connector);
     }
